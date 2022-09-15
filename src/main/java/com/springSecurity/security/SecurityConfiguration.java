@@ -1,7 +1,6 @@
 package com.springSecurity.security;
 
 import com.springSecurity.security.jwt.JwtFilter;
-import com.springSecurity.user.Role;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -18,8 +17,6 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import javax.annotation.Resource;
 import java.util.Collections;
@@ -27,9 +24,6 @@ import java.util.Collections;
 @Configuration
 @EnableWebSecurity
 public class SecurityConfiguration{
-
-    @Autowired
-    private JwtFilter jwtFilter;
     @Resource(name = "UserService")
     private UserDetailsService userDetailsService;
 
@@ -62,17 +56,16 @@ public class SecurityConfiguration{
                 .and()
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
-                .addFilter(jwtFilter)
                 .httpBasic();
         return http.build();
 
     }
 
-//    @Bean
-//    public FilterRegistrationBean filterRegistrationBean(Environment environment) {
-//        FilterRegistrationBean filterRegistrationBean = new FilterRegistrationBean();
-//        filterRegistrationBean.setFilter(new JwtFilter(environment));
-//        filterRegistrationBean.setUrlPatterns(Collections.singleton("/admin/*"));
-//        return filterRegistrationBean;
-//    }
+    @Bean
+    public FilterRegistrationBean filterRegistrationBean(Environment environment) {
+        FilterRegistrationBean filterRegistrationBean = new FilterRegistrationBean();
+        filterRegistrationBean.setFilter(new JwtFilter(environment));
+        filterRegistrationBean.setUrlPatterns(Collections.singleton("/application/*"));
+        return filterRegistrationBean;
+    }
 }
