@@ -17,9 +17,9 @@ import java.util.*;
 @Component
 public class JwtFilter implements Filter {
 
-    private final String secret;
     @Autowired
-    private TokenRepo tokenRepo;
+    public TokenRepo tokenRepo;
+    private final String secret;
 
     @Autowired
     public JwtFilter(Environment env) {
@@ -46,20 +46,26 @@ public class JwtFilter implements Filter {
             Claims claims = Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody();
             servletRequest.setAttribute("claims", claims);
             if(claims.getExpiration().before(new Date())) {
-                handleExpirationToken(token);
+                logout(token);
+                throw new ServletException("Expiration token");
             }
         } catch (SignatureException e) {
             throw new ServletException("Invalid token");
         }
     }
 
+    private void logout(String token) {
+        Optional<TokenModel> tokenModel = tokenRepo.findByValue(token);
+        tokenModel.ifPresent(model -> tokenRepo.delete(model));
+    }
+
+    /*      FRONTEND HAVE TO ADD SOMETHING WHAT'S WORKING LIKE THAT:
+
     private void handleExpirationToken(String token) {
         createTimer(token);
-
         Scanner scanner =new Scanner(System.in);
         System.out.print("Enter your choice (1- logout, 2- stay): ");
         int choice = scanner.nextInt();
-
         if(choice == 1){
             refreshToken();
         } else {
@@ -78,14 +84,6 @@ public class JwtFilter implements Filter {
         };
         timer.schedule(task, 15000);
     }
+*/
 
-    private void refreshToken() {
-        //TODO: create refreshToken
-    }
-
-    private void logout(String token) {
-        Optional<TokenModel> tokenModel = tokenRepo.findByValue(token);
-        tokenModel.ifPresent(model -> tokenRepo.delete(model));
-        System.out.println("You have to login again");
-    }
 }

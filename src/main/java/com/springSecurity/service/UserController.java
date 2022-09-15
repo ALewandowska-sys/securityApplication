@@ -1,10 +1,12 @@
 package com.springSecurity.service;
 
+import com.springSecurity.token.TokenModel;
 import com.springSecurity.user.UserModel;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 public class UserController {
@@ -32,11 +34,11 @@ public class UserController {
 
     @GetMapping("/logout")
     public void logout(){
-        //TODO: delete token for user
+        // TODO: delete token for user
     }
 
     @PostMapping("/login")
     public void login(@RequestParam String name, @RequestParam String password){
-        //TODO: create token if user is present inside repo
+        // TODO: create token if user is present inside repo
     }
 }
