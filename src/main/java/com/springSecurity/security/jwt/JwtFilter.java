@@ -1,5 +1,7 @@
 package com.springSecurity.security.jwt;
 
+import com.springSecurity.token.TokenModel;
+import com.springSecurity.token.TokenRepo;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureException;
@@ -9,11 +11,13 @@ import org.springframework.core.env.Environment;
 import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
-import java.util.Date;
+import java.util.*;
 
 public class JwtFilter implements Filter {
 
     private final String secret;
+    @Autowired
+    private TokenRepo tokenRepo;
 
     @Autowired
     public JwtFilter(Environment env) {
@@ -21,8 +25,7 @@ public class JwtFilter implements Filter {
     }
 
     @Override
-    public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain)
-            throws IOException, ServletException {
+    public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain) throws ServletException, IOException {
         HttpServletRequest httpServletRequest = (HttpServletRequest) servletRequest;
         String header = httpServletRequest.getHeader("authorization");
 
@@ -30,23 +33,57 @@ public class JwtFilter implements Filter {
             throw new ServletException("Missing or invalid Authorization header");
         }
         else {
-            try {
-                String token = header.substring(7);
-                Claims claims = Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody();
-                servletRequest.setAttribute("claims", claims);
-                if(claims.getExpiration().before(new Date())) {
-
-                    //TODO: Add two options if token isn't active:
-                    // - logout (remove token from database)
-                    // - stay on website, so create refresh token
-                    // - before 15s automatically go to log out
-
-                    System.out.println("token is expired");
-                }
-            } catch (SignatureException e) {
-                throw new ServletException("Invalid token");
-            }
+            checkToken(header, (HttpServletRequest) servletRequest);
         }
         filterChain.doFilter(servletRequest, servletResponse);
+    }
+
+    private void checkToken(String header, HttpServletRequest servletRequest) throws ServletException {
+        try {
+            String token = header.substring(7);
+            Claims claims = Jwts.parser().setSigningKey(secret).parseClaimsJws(token).getBody();
+            servletRequest.setAttribute("claims", claims);
+            if(claims.getExpiration().before(new Date())) {
+                handleExpirationToken(token);
+            }
+        } catch (SignatureException e) {
+            throw new ServletException("Invalid token");
+        }
+    }
+
+    private void handleExpirationToken(String token) {
+        createTimer(token);
+
+        Scanner scanner =new Scanner(System.in);
+        System.out.print("Enter your choice (1- logout, 2- stay): ");
+        int choice = scanner.nextInt();
+
+        if(choice == 1){
+            refreshToken();
+        } else {
+            logout(token);
+        }
+    }
+
+    private void createTimer(String token) {
+        Timer timer = new Timer();
+        TimerTask task = new TimerTask() {
+            @Override
+            public void run() {
+                logout(token);
+                timer.cancel();
+            }
+        };
+        timer.schedule(task, 15000);
+    }
+
+    private void refreshToken() {
+        //TODO: create refreshToken
+    }
+
+    private void logout(String token) {
+        Optional<TokenModel> tokenModel = tokenRepo.findByValue(token);
+        tokenModel.ifPresent(model -> tokenRepo.delete(model));
+        System.out.println("You have to login again");
     }
 }
