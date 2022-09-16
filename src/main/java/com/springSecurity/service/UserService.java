@@ -5,6 +5,10 @@ import com.springSecurity.token.TokenModel;
 import com.springSecurity.token.TokenRepo;
 import com.springSecurity.user.UserModel;
 import com.springSecurity.user.UserRepo;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,11 +22,13 @@ public class UserService {
     private final UserRepo userRepo;
     private final TokenRepo tokenRepo;
     private final JwtCreate jwtCreate;
-
-    public UserService(UserRepo userRepo, TokenRepo tokenRepo, JwtCreate jwtCreate) {
+    private final MailService mailService;
+    @Value("${spring.mail.username}") String sender;
+    public UserService(UserRepo userRepo, TokenRepo tokenRepo, JwtCreate jwtCreate, MailService mailService) {
         this.userRepo = userRepo;
         this.tokenRepo = tokenRepo;
         this.jwtCreate = jwtCreate;
+        this.mailService = mailService;
     }
 
     public List<UserModel> getUsers(){
@@ -44,7 +50,7 @@ public class UserService {
         }
     }
 
-    @Transactional(rollbackFor = Exception.class)
+    @Transactional
     private void createToken(UserModel user) {
         TokenModel token = new TokenModel();
         token.setUser(user);
@@ -54,11 +60,10 @@ public class UserService {
     }
 
     private void sendMail(String value, UserModel user) {
-        String url = "http://localhost:8080?token=" + value;
+        String url = "http://localhost:8080/token?value=" + value;
         String sendTo = user.getEmail();
         String subjectMail = "Confirm your email for finish registration";
-        Mail mailModel = new Mail(sendTo, subjectMail, value);
-        mailModel.sendMail();
+        mailService.sendMail(sender, sendTo, subjectMail, url);
     }
 
     public String compareToken(String token) {
@@ -68,8 +73,7 @@ public class UserService {
             userModel.setEnable(true);
             userRepo.save(userModel);
             return "Account is enable";
-        }else {
-            return "Incorrect token";
         }
+        return "Incorrect token";
     }
 }

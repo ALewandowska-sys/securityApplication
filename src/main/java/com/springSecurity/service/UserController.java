@@ -28,8 +28,8 @@ public class UserController {
     }
 
     @GetMapping("/token")
-    public String finishRegister(@RequestParam String token){
-        return service.compareToken(token);
+    public String finishRegister(@RequestParam String value){
+        return service.compareToken(value);
     }
 
     @GetMapping("/logout")
@@ -39,6 +39,7 @@ public class UserController {
 
     @PostMapping("/login")
     public void login(@RequestParam String name, @RequestParam String password){
+
         // TODO: create token if user is present inside repo
     }
 }
